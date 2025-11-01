@@ -28,16 +28,6 @@ public class LigneCommande {
     @JoinColumn(name = "commande_id", nullable = false)
     private Commande commande;
 
-    // === CONSTRUCTEURS ===
-    public LigneCommande() {}
-
-    public LigneCommande(Commande commande, Plat plat, Integer quantite) {
-        this.commande = commande;
-        this.plat = plat;
-        this.quantite = quantite;
-        this.prixUnitaire = plat.getPrix();
-        this.sousTotal = prixUnitaire * quantite;
-    }
 
     // === GETTERS & SETTERS ===
     public Long getId() { return id; }
@@ -71,7 +61,7 @@ public class LigneCommande {
     public void setCommande(Commande commande) { this.commande = commande; }
 
     // === MÉTHODES UTILES ===
-    private void calculerSousTotal() {
+    public void calculerSousTotal() {
         if (this.prixUnitaire != null && this.quantite != null) {
             this.sousTotal = this.prixUnitaire * this.quantite;
         }

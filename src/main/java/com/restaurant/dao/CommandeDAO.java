@@ -1,7 +1,6 @@
 package com.restaurant.dao;
 
 import com.restaurant.model.Commande;
-import com.restaurant.model.StatutCommande;
 import com.restaurant.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
@@ -18,9 +17,8 @@ public class CommandeDAO extends GenericDAO<Commande> {
 
     /**
      * 📊 COMMANDES PAR STATUT - Liste les commandes selon leur statut
-     * Utilisé pour : Suivi des commandes (en attente, en préparation, etc.)
      */
-    public List<Commande> findByStatut(StatutCommande statut) {
+    public List<Commande> findByStatut(Commande.StatutCommande statut) { // CORRECTION : Commande.StatutCommande
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
             String hql = "FROM Commande c WHERE c.statut = :statut ORDER BY c.dateCommande";

@@ -1,7 +1,6 @@
 package com.restaurant.dao;
 
 import com.restaurant.model.TableRestaurant;
-import com.restaurant.model.StatutTable;
 import com.restaurant.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
@@ -21,7 +20,7 @@ public class TableRestaurantDAO extends GenericDAO<TableRestaurant> {
      * 📊 TABLES PAR STATUT - Liste les tables selon leur statut
      * Utilisé pour : Voir les tables libres/occupées, gestion du service
      */
-    public List<TableRestaurant> findByStatut(StatutTable statut) {
+    public List<TableRestaurant> findByStatut(TableRestaurant.StatutTable statut) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
             String hql = "FROM TableRestaurant t WHERE t.statut = :statut ORDER BY t.numero";
@@ -38,7 +37,7 @@ public class TableRestaurantDAO extends GenericDAO<TableRestaurant> {
      * Utilisé pour : Attribution de table à une nouvelle commande
      */
     public List<TableRestaurant> findTablesLibres() {
-        return findByStatut(StatutTable.LIBRE);
+        return findByStatut(TableRestaurant.StatutTable.LIBRE);
     }
 
     /**

@@ -66,5 +66,10 @@ public class TableRestaurant {
                 ", statut=" + statut +
                 '}';
     }
+
+    public enum StatutTable {
+        LIBRE, OCCUPEE, RESERVEE
+    }
+
 }
 

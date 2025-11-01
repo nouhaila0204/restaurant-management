@@ -102,6 +102,10 @@ public class User {
                 '}';
     }
 
+    public enum RoleUser {
+        ADMIN, SERVEUR
+    }
+
     public boolean isAdmin() {
         return this.role == RoleUser.ADMIN;
     }

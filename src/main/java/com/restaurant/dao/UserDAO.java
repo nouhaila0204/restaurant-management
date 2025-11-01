@@ -16,7 +16,6 @@ public class UserDAO extends GenericDAO<User> {
     public Optional<User> findByEmail(String email) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
-            // ⭐ CORRECTION : "FROM User"
             String hql = "FROM User u WHERE u.email = :email";
             Query<User> query = session.createQuery(hql, User.class);
             query.setParameter("email", email);
@@ -29,7 +28,6 @@ public class UserDAO extends GenericDAO<User> {
     public Optional<User> findByEmailAndPassword(String email, String password) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
-            // ⭐ DÉJÀ CORRECT : "FROM User"
             String hql = "FROM User u WHERE u.email = :email AND u.motDePasse = :password";
             Query<User> query = session.createQuery(hql, User.class);
             query.setParameter("email", email);
@@ -40,7 +38,24 @@ public class UserDAO extends GenericDAO<User> {
         }
     }
 
+    /**
+     * ⭐⭐ CORRECTION CRITIQUE - NE PAS UTILISER findByField() ⭐⭐
+     */
     public List<User> findByRole(String role) {
-        return findByField("role", role);
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            // Conversion du String en Enum
+            User.RoleUser roleEnum = User.RoleUser.valueOf(role.toUpperCase());
+
+            String hql = "FROM User u WHERE u.role = :role";
+            Query<User> query = session.createQuery(hql, User.class);
+            query.setParameter("role", roleEnum); // ⭐ Passer l'Enum, pas le String
+            return query.list();
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ Rôle invalide: " + role + ". Rôles valides: ADMIN, SERVEUR");
+            return List.of(); // Retourne liste vide si rôle invalide
+        } finally {
+            session.close();
+        }
     }
 }

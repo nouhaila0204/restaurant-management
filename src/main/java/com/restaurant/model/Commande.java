@@ -61,8 +61,25 @@ public class Commande {
     }
 
     public void ajouterLigne(Plat plat, int quantite) {
-        LigneCommande ligne = new LigneCommande(this, plat, quantite);
-        lignes.add(ligne);
+        // Vérifier si le plat existe déjà dans la commande
+        for (LigneCommande ligneExistante : lignes) {
+            if (ligneExistante.getPlat().getId().equals(plat.getId())) {
+                // Mettre à jour la quantité si le plat existe déjà
+                ligneExistante.setQuantite(ligneExistante.getQuantite() + quantite);
+                calculerMontantTotal();
+                return;
+            }
+        }
+
+        // Créer une nouvelle ligne
+        LigneCommande nouvelleLigne = new LigneCommande();
+        nouvelleLigne.setCommande(this); // IMPORTANT: établir la relation
+        nouvelleLigne.setPlat(plat);
+        nouvelleLigne.setQuantite(quantite);
+        nouvelleLigne.setPrixUnitaire(plat.getPrix());
+        nouvelleLigne.calculerSousTotal();
+
+        lignes.add(nouvelleLigne);
         calculerMontantTotal();
     }
 
@@ -110,6 +127,9 @@ public class Commande {
                 ", statut=" + statut +
                 ", montantTotal=" + montantTotal +
                 '}';
+    }
+    public enum StatutCommande {
+        EN_ATTENTE, EN_PREPARATION, PRETE, SERVIE, PAYEE
     }
 }
 
