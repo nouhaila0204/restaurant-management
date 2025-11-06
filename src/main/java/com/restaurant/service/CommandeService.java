@@ -17,11 +17,25 @@ public class CommandeService {
     private PlatDAO platDAO = new PlatDAO();
     private ClientDAO clientDAO = new ClientDAO();
     private UserDAO userDAO = new UserDAO();
+    private AuthenticationService authService = new AuthenticationService();
 
     /**
-     * Crée une nouvelle commande avec toutes les validations métier - VERSION CORRIGÉE
+     * Crée une nouvelle commande avec toutes les validations métier - Permission: SERVEUR
      */
-    public Commande creerCommande(Long tableId, Map<Long, Integer> platsQuantites, Long serveurId) {
+    public Commande creerCommande(Long userId, Long tableId, Map<Long, Integer> platsQuantites, Long serveurId) {
+        // Vérification permission
+        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_CREER)) {
+            throw new RuntimeException("❌ Permission refusée : Création commande (Serveur seulement)");
+        }
+
+        // Vérifier que le serveur correspond à l'utilisateur connecté
+        User utilisateurConnecte = authService.trouverUtilisateurParId(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (!utilisateurConnecte.getId().equals(serveurId)) {
+            throw new RuntimeException("❌ Vous ne pouvez créer des commandes que pour vous-même");
+        }
+
         Transaction transaction = null;
         Session session = null;
 
@@ -55,7 +69,7 @@ public class CommandeService {
             commande.setTable(table);
             commande.setServeur(serveur);
             commande.setClient(clientDAO.findById(1L).orElse(null));
-            commande.setMontantTotal(Double.valueOf(0.0)); // ✅ Correction: Double au lieu de double
+            commande.setMontantTotal(Double.valueOf(0.0));
             commande.setStatut(Commande.StatutCommande.EN_ATTENTE);
 
             // 5. SAUVEGARDE DE LA COMMANDE D'ABORD
@@ -87,20 +101,20 @@ public class CommandeService {
                 LigneCommande ligne = new LigneCommande();
                 ligne.setCommande(commande);
                 ligne.setPlat(plat);
-                ligne.setQuantite(Integer.valueOf(quantite)); // ✅ Correction: Integer au lieu de int
+                ligne.setQuantite(Integer.valueOf(quantite));
                 ligne.setPrixUnitaire(plat.getPrix());
-                ligne.setSousTotal(Double.valueOf(sousTotal)); // ✅ Correction: Double au lieu de double
+                ligne.setSousTotal(Double.valueOf(sousTotal));
 
                 // Sauvegarder la ligne
                 session.save(ligne);
                 lignes.add(ligne);
             }
 
-            // ✅ CORRECTION : ASSOCIER les lignes à la commande
+            // ASSOCIER les lignes à la commande
             commande.getLignes().addAll(lignes);
 
             // 7. METTRE À JOUR LA COMMANDE AVEC LE MONTANT TOTAL
-            commande.setMontantTotal(Double.valueOf(montantTotal)); // ✅ Correction: Double au lieu de double
+            commande.setMontantTotal(Double.valueOf(montantTotal));
             session.update(commande);
 
             // 8. MISE À JOUR TABLE (occupée)
@@ -123,9 +137,13 @@ public class CommandeService {
     }
 
     /**
-     * Change le statut d'une commande - MÉTHODE MANQUANTE
+     * Change le statut d'une commande - Permission: SERVEUR ou ADMIN
      */
-    public Commande changerStatutCommande(Long commandeId, Commande.StatutCommande nouveauStatut) {
+    public Commande changerStatutCommande(Long userId, Long commandeId, Commande.StatutCommande nouveauStatut) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_STATUT)) {
+            throw new RuntimeException("❌ Permission refusée : Changement statut commande");
+        }
+
         Transaction transaction = null;
         Session session = null;
 
@@ -163,9 +181,13 @@ public class CommandeService {
     }
 
     /**
-     * Récupère les commandes en cours
+     * Récupère les commandes en cours - Permission: SERVEUR ou ADMIN
      */
-    public List<Commande> getCommandesEnCours() {
+    public List<Commande> getCommandesEnCours(Long userId) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_VOIR_EN_COURS)) {
+            throw new RuntimeException("❌ Permission refusée : Voir commandes en cours");
+        }
+
         List<Commande> commandes = new ArrayList<>();
         commandes.addAll(commandeDAO.findByStatut(Commande.StatutCommande.EN_ATTENTE));
         commandes.addAll(commandeDAO.findByStatut(Commande.StatutCommande.EN_PREPARATION));
@@ -175,37 +197,49 @@ public class CommandeService {
     }
 
     /**
-     * Récupère les commandes du jour
+     * Récupère les commandes du jour - Permission: SERVEUR ou ADMIN
      */
-    public List<Commande> getCommandesDuJour() {
+    public List<Commande> getCommandesDuJour(Long userId) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_VOIR_DU_JOUR)) {
+            throw new RuntimeException("❌ Permission refusée : Voir commandes du jour");
+        }
         return commandeDAO.findCommandesDuJour();
     }
 
     /**
-     * Calcule le chiffre d'affaires du jour
+     * Calcule le chiffre d'affaires du jour - Permission: ADMIN seulement
      */
-    public double getChiffreAffairesDuJour() {
-        return getCommandesDuJour().stream()
+    public double getChiffreAffairesDuJour(Long userId) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.STATS_CHIFFRE_AFFAIRE)) {
+            throw new RuntimeException("❌ Permission refusée : Voir chiffre d'affaires (Admin seulement)");
+        }
+
+        return getCommandesDuJour(userId).stream()
                 .filter(c -> c.getStatut() == Commande.StatutCommande.PAYEE)
                 .mapToDouble(Commande::getMontantTotal)
                 .sum();
     }
 
     /**
-     * Méthode supplémentaire pour trouver une commande par ID
+     * Méthode supplémentaire pour trouver une commande par ID - Permission: SERVEUR ou ADMIN
      */
-    public Commande trouverCommandeParId(Long id) {
+    public Commande trouverCommandeParId(Long userId, Long id) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_VOIR_PAR_ID)) {
+            throw new RuntimeException("❌ Permission refusée : Voir commande par ID");
+        }
+
         return commandeDAO.findById(id)
                 .orElseThrow(() -> new RuntimeException("Commande non trouvée avec l'ID: " + id));
     }
 
     /**
-     * Ajoute un plat à une commande existante
+     * Ajoute un plat à une commande existante - Permission: SERVEUR
      */
-    /**
-     * Ajoute un plat à une commande existante - VERSION CORRIGÉE
-     */
-    public Commande ajouterPlatACommande(Long commandeId, Long platId, int quantite) {
+    public Commande ajouterPlatACommande(Long userId, Long commandeId, Long platId, int quantite) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_AJOUTER_PLAT)) {
+            throw new RuntimeException("❌ Permission refusée : Ajouter plat à commande (Serveur seulement)");
+        }
+
         Transaction transaction = null;
         Session session = null;
 
@@ -269,5 +303,15 @@ public class CommandeService {
                 session.close();
             }
         }
+    }
+
+    /**
+     * Récupère toutes les commandes - Permission: ADMIN seulement
+     */
+    public List<Commande> getToutesCommandes(Long userId) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_VOIR)) {
+            throw new RuntimeException("❌ Permission refusée : Voir toutes les commandes (Admin seulement)");
+        }
+        return commandeDAO.findAll();
     }
 }

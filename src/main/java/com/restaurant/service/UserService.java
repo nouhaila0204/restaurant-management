@@ -112,4 +112,44 @@ public class UserService {
 
         return authService.creerUser(nom, email, password, role);
     }
+    /**
+     * Récupère tous les utilisateurs - Permission: ADMIN seulement
+     */
+    public List<User> getTousUtilisateurs(Long adminId) {
+        if (!authService.aPermission(adminId, AuthenticationService.Permission.USER_VOIR_TOUS)) {
+            throw new RuntimeException("❌ Permission refusée : Voir tous les utilisateurs (Admin seulement)");
+        }
+        return userDAO.findAll();
+    }
+
+    /**
+     * Récupère un utilisateur par son ID - Permission: ADMIN ou l'utilisateur lui-même
+     */
+    public User getUtilisateurParId(Long userId, Long targetUserId) {
+        // L'utilisateur peut voir son propre profil, l'admin peut voir tous
+        if (!userId.equals(targetUserId) && !authService.estAdmin(userId)) {
+            throw new RuntimeException("❌ Permission refusée : Consultation utilisateur");
+        }
+        return userDAO.findById(targetUserId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+    }
+
+    /**
+     * Supprime un utilisateur - Permission: ADMIN seulement
+     */
+    public void supprimerUtilisateur(Long adminId, Long userId) {
+        if (!authService.aPermission(adminId, AuthenticationService.Permission.USER_MODIFIER)) {
+            throw new RuntimeException("❌ Permission refusée : Suppression utilisateur (Admin seulement)");
+        }
+
+        // Empêcher l'auto-suppression
+        if (adminId.equals(userId)) {
+            throw new RuntimeException("❌ Vous ne pouvez pas supprimer votre propre compte");
+        }
+
+        User user = userDAO.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        userDAO.delete(userId);
+    }
 }

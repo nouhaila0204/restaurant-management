@@ -12,11 +12,17 @@ import java.util.List;
 public class PlatService {
     private PlatDAO platDAO = new PlatDAO();
     private CategorieDAO categorieDAO = new CategorieDAO();
+    private AuthenticationService authService = new AuthenticationService();
 
     /**
-     * Crée un nouveau plat avec validation
+     * Crée un nouveau plat avec validation - Permission: ADMIN seulement
      */
-    public Plat creerPlat(String nom, String description, Double prix, Long categorieId) {
+    public Plat creerPlat(Long userId, String nom, String description, Double prix, Long categorieId) {
+        // Vérification permission ADMIN
+        if (!authService.aPermission(userId, AuthenticationService.Permission.PLAT_CREER)) {
+            throw new RuntimeException("❌ Permission refusée : Création plat (Admin seulement)");
+        }
+
         // Validation
         if (nom == null || nom.trim().isEmpty()) {
             throw new RuntimeException("Le nom du plat est obligatoire");
@@ -35,9 +41,13 @@ public class PlatService {
     }
 
     /**
-     * Met à jour un plat existant
+     * Met à jour un plat existant - Permission: ADMIN seulement
      */
-    public Plat modifierPlat(Long platId, String nom, String description, Double prix, Long categorieId) {
+    public Plat modifierPlat(Long userId, Long platId, String nom, String description, Double prix, Long categorieId) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.PLAT_MODIFIER)) {
+            throw new RuntimeException("❌ Permission refusée : Modification plat (Admin seulement)");
+        }
+
         Plat plat = platDAO.findById(platId)
                 .orElseThrow(() -> new RuntimeException("Plat non trouvé"));
 
@@ -60,9 +70,13 @@ public class PlatService {
     }
 
     /**
-     * Change la disponibilité d'un plat
+     * Change la disponibilité d'un plat - Permission: ADMIN seulement
      */
-    public Plat changerDisponibilitePlat(Long platId, boolean disponible) {
+    public Plat changerDisponibilitePlat(Long userId, Long platId, boolean disponible) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.PLAT_DISPONIBILITE)) {
+            throw new RuntimeException("❌ Permission refusée : Changer disponibilité plat (Admin seulement)");
+        }
+
         Plat plat = platDAO.findById(platId)
                 .orElseThrow(() -> new RuntimeException("Plat non trouvé"));
 
@@ -71,16 +85,21 @@ public class PlatService {
     }
 
     /**
-     * Récupère les plats disponibles pour le menu
+     * Récupère les plats disponibles pour le menu - Permission: PUBLIC
      */
     public List<Plat> getMenuDisponible() {
+        // Pas de vérification de permission - accessible à tous
         return platDAO.findPlatsDisponibles();
     }
 
     /**
-     * Recherche des plats par nom
+     * Recherche des plats par nom - Permission: SERVEUR ou ADMIN
      */
-    public List<Plat> rechercherPlats(String searchTerm) {
+    public List<Plat> rechercherPlats(Long userId, String searchTerm) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.PLAT_RECHERCHER)) {
+            throw new RuntimeException("❌ Permission refusée : Recherche plats");
+        }
+
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return getMenuDisponible();
         }
@@ -88,9 +107,26 @@ public class PlatService {
     }
 
     /**
-     * Récupère les plats d'une catégorie
+     * Récupère les plats d'une catégorie - Permission: SERVEUR ou ADMIN
      */
-    public List<Plat> getPlatsParCategorie(Long categorieId) {
+    public List<Plat> getPlatsParCategorie(Long userId, Long categorieId) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.PLAT_VOIR_CATEGORIE)) {
+            throw new RuntimeException("❌ Permission refusée : Voir plats par catégorie");
+        }
         return platDAO.findByCategorie(categorieId);
+    }
+
+    /**
+     * Supprime un plat - Permission: ADMIN seulement
+     */
+    public void supprimerPlat(Long userId, Long platId) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.PLAT_SUPPRIMER)) {
+            throw new RuntimeException("❌ Permission refusée : Suppression plat (Admin seulement)");
+        }
+
+        Plat plat = platDAO.findById(platId)
+                .orElseThrow(() -> new RuntimeException("Plat non trouvé"));
+
+        platDAO.delete(platId);
     }
 }
