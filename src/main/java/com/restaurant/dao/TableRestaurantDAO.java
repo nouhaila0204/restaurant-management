@@ -33,6 +33,21 @@ public class TableRestaurantDAO extends GenericDAO<TableRestaurant> {
     }
 
     /**
+     * 📊 TOUTES LES TABLES TRIÉES - Liste toutes les tables triées par numéro
+     * Utilisé pour : Affichage complet de la gestion des tables
+     */
+    public List<TableRestaurant> findAllOrdered() {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            String hql = "FROM TableRestaurant t ORDER BY t.numero";
+            Query<TableRestaurant> query = session.createQuery(hql, TableRestaurant.class);
+            return query.list();
+        } finally {
+            session.close();
+        }
+    }
+
+    /**
      * ✅ TABLES LIBRES - Liste seulement les tables disponibles
      * Utilisé pour : Attribution de table à une nouvelle commande
      */

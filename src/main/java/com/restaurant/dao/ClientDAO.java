@@ -33,17 +33,29 @@ public class ClientDAO extends GenericDAO<Client> {
         }
     }
 
+
     /**
      * 🔍 RECHERCHE CLIENT - Recherche par nom ou téléphone
-     * Utilisé pour : Trouver rapidement un client existant
      */
     public List<Client> searchClients(String searchTerm) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
+            System.out.println("🎯 DAO - Début recherche avec terme: '" + searchTerm + "'");
+
             String hql = "FROM Client c WHERE LOWER(c.nom) LIKE LOWER(:searchTerm) OR c.telephone LIKE :searchTerm";
             Query<Client> query = session.createQuery(hql, Client.class);
             query.setParameter("searchTerm", "%" + searchTerm + "%");
-            return query.list();
+
+            List<Client> results = query.list();
+            System.out.println("🎯 DAO - Requête HQL exécutée: " + hql);
+            System.out.println("🎯 DAO - Paramètre: '%" + searchTerm + "%'");
+            System.out.println("🎯 DAO - Résultats trouvés: " + results.size());
+
+            for (Client client : results) {
+                System.out.println("🎯 DAO - Client: " + client.getNom() + " | " + client.getTelephone());
+            }
+
+            return results;
         } finally {
             session.close();
         }

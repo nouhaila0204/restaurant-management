@@ -39,6 +39,7 @@ public class ClientService {
         return clientDAO.findByTelephone(telephone);
     }
 
+
     /**
      * Recherche des clients par nom ou téléphone - Permission: SERVEUR ou ADMIN
      */
@@ -47,10 +48,17 @@ public class ClientService {
             throw new RuntimeException("❌ Permission refusée : Recherche clients");
         }
 
+        System.out.println("🔍 Service Recherche - Terme: '" + searchTerm + "'");
+
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            System.out.println("🔍 Recherche vide - retourne tous les clients");
             return clientDAO.findAll();
         }
-        return clientDAO.searchClients(searchTerm);
+
+        List<Client> results = clientDAO.searchClients(searchTerm);
+        System.out.println("✅ Service Recherche - " + results.size() + " résultats trouvés");
+
+        return results;
     }
 
     /**

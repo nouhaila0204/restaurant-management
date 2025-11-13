@@ -19,10 +19,11 @@ public class CommandeService {
     private UserDAO userDAO = new UserDAO();
     private AuthenticationService authService = new AuthenticationService();
 
+
     /**
      * Crée une nouvelle commande avec toutes les validations métier - Permission: SERVEUR
      */
-    public Commande creerCommande(Long userId, Long tableId, Map<Long, Integer> platsQuantites, Long serveurId) {
+    public Commande creerCommande(Long userId, Long tableId, Map<Long, Integer> platsQuantites, Long serveurId, Long clientId) {
         // Vérification permission
         if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_CREER)) {
             throw new RuntimeException("❌ Permission refusée : Création commande (Serveur seulement)");
@@ -59,24 +60,28 @@ public class CommandeService {
                 throw new RuntimeException("L'utilisateur n'est pas un serveur");
             }
 
-            // 3. VALIDATION PLATS
+            // 3. VALIDATION CLIENT
+            Client client = clientDAO.findById(clientId)
+                    .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+
+            // 4. VALIDATION PLATS
             if (platsQuantites == null || platsQuantites.isEmpty()) {
                 throw new RuntimeException("Une commande doit contenir au moins un plat");
             }
 
-            // 4. CRÉATION COMMANDE
+            // 5. CRÉATION COMMANDE
             Commande commande = new Commande();
             commande.setTable(table);
             commande.setServeur(serveur);
-            commande.setClient(clientDAO.findById(1L).orElse(null));
+            commande.setClient(client); // UTILISER le client sélectionné
             commande.setMontantTotal(Double.valueOf(0.0));
             commande.setStatut(Commande.StatutCommande.EN_ATTENTE);
 
-            // 5. SAUVEGARDE DE LA COMMANDE D'ABORD
+            // 6. SAUVEGARDE DE LA COMMANDE D'ABORD
             session.save(commande);
             session.flush();
 
-            // 6. CRÉATION ET SAUVEGARDE DES LIGNES DE COMMANDE
+            // 7. CRÉATION ET SAUVEGARDE DES LIGNES DE COMMANDE
             double montantTotal = 0;
             List<LigneCommande> lignes = new ArrayList<>();
 
@@ -113,15 +118,19 @@ public class CommandeService {
             // ASSOCIER les lignes à la commande
             commande.getLignes().addAll(lignes);
 
-            // 7. METTRE À JOUR LA COMMANDE AVEC LE MONTANT TOTAL
+            // 8. METTRE À JOUR LA COMMANDE AVEC LE MONTANT TOTAL
             commande.setMontantTotal(Double.valueOf(montantTotal));
             session.update(commande);
 
-            // 8. MISE À JOUR TABLE (occupée)
+            // 9. MISE À JOUR TABLE (occupée)
             table.setStatut(TableRestaurant.StatutTable.OCCUPEE);
             session.update(table);
 
             transaction.commit();
+
+            System.out.println("✅ Commande créée avec succès - ID: " + commande.getId());
+            System.out.println("📊 Détails: " + platsQuantites.size() + " plats, Total: " + montantTotal + " €");
+
             return commande;
 
         } catch (Exception e) {
@@ -199,11 +208,53 @@ public class CommandeService {
     /**
      * Récupère les commandes du jour - Permission: SERVEUR ou ADMIN
      */
+    /**
+     * Récupère les commandes du jour - Permission: SERVEUR ou ADMIN
+     */
     public List<Commande> getCommandesDuJour(Long userId) {
-        if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_VOIR_DU_JOUR)) {
-            throw new RuntimeException("❌ Permission refusée : Voir commandes du jour");
+        try {
+            System.out.println("🔍 CommandeService.getCommandesDuJour() appelé pour user: " + userId);
+
+            // Vérifier la permission
+            if (!authService.aPermission(userId, AuthenticationService.Permission.COMMANDE_VOIR_EN_COURS)) {
+                System.err.println("❌ Permission refusée pour user: " + userId);
+                return new ArrayList<>();
+            }
+
+            // CORRECTION: Utiliser FETCH JOIN pour charger les relations
+            Session session = HibernateUtil.getSessionFactory().openSession();
+
+            String hql = "SELECT c FROM Commande c " +
+                    "LEFT JOIN FETCH c.table " +
+                    "LEFT JOIN FETCH c.serveur " +
+                    "LEFT JOIN FETCH c.client " +
+                    "WHERE DATE(c.dateCommande) = CURRENT_DATE " +
+                    "ORDER BY c.dateCommande DESC";
+
+            List<Commande> commandes = session.createQuery(hql, Commande.class).list();
+
+            session.close();
+
+            System.out.println("✅ CommandeService.getCommandesDuJour() retourne: " + commandes.size() + " commandes");
+
+            // DEBUG: Afficher les détails des commandes
+            for (Commande cmd : commandes) {
+                System.out.println("📋 Commande #" + cmd.getId() +
+                        " - Numéro: " + cmd.getNumero() +
+                        " - Date: " + cmd.getDateCommande() +
+                        " - Statut: " + cmd.getStatut() +
+                        " - Montant: " + cmd.getMontantTotal() +
+                        " - Table: " + (cmd.getTable() != null ? cmd.getTable().getNumero() : "null") +
+                        " - Serveur: " + (cmd.getServeur() != null ? cmd.getServeur().getNom() : "null"));
+            }
+
+            return commandes;
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans getCommandesDuJour: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
         }
-        return commandeDAO.findCommandesDuJour();
     }
 
     /**

@@ -47,6 +47,16 @@ public class TableService {
     }
 
     /**
+     * Récupère les tables par statut - Permission: SERVEUR ou ADMIN
+     */
+    public List<TableRestaurant> getTablesByStatut(Long userId, TableRestaurant.StatutTable statut) {
+        if (!authService.aPermission(userId, AuthenticationService.Permission.TABLE_VOIR_TOUTES)) {
+            throw new RuntimeException("❌ Permission refusée : Voir tables par statut");
+        }
+        return tableDAO.findByStatut(statut);
+    }
+
+    /**
      * Change le statut d'une table - Permission: SERVEUR ou ADMIN
      */
     public TableRestaurant changerStatutTable(Long userId, Long tableId, TableRestaurant.StatutTable nouveauStatut) {
@@ -78,7 +88,7 @@ public class TableService {
         if (!authService.aPermission(userId, AuthenticationService.Permission.TABLE_VOIR_TOUTES)) {
             throw new RuntimeException("❌ Permission refusée : Voir toutes les tables");
         }
-        return tableDAO.findAll();
+        return tableDAO.findAllOrdered();
     }
 
     /**

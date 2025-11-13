@@ -4,6 +4,8 @@ import com.restaurant.model.Plat;
 import com.restaurant.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,13 +22,13 @@ public class PlatDAO extends GenericDAO<Plat> {
      * Utilisé pour : Afficher le menu aux clients, prise de commande
      */
     public List<Plat> findPlatsDisponibles() {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        try {
-            String hql = "FROM Plat p WHERE p.disponible = true ORDER BY p.categorie.nom, p.nom";
-            Query<Plat> query = session.createQuery(hql, Plat.class);
-            return query.list();
-        } finally {
-            session.close();
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            // Utiliser JOIN FETCH pour charger la catégorie immédiatement
+            String hql = "SELECT p FROM Plat p LEFT JOIN FETCH p.categorie WHERE p.disponible = true ORDER BY p.categorie.nom, p.nom";
+            return session.createQuery(hql, Plat.class).getResultList();
+        } catch (Exception e) {
+            System.err.println("Erreur recherche plats disponibles: " + e.getMessage());
+            return new ArrayList<>();
         }
     }
 
@@ -35,14 +37,15 @@ public class PlatDAO extends GenericDAO<Plat> {
      * Utilisé pour : Filtrer le menu par catégorie (pizzas, desserts, etc.)
      */
     public List<Plat> findByCategorie(Long categorieId) {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        try {
-            String hql = "FROM Plat p WHERE p.categorie.id = :categorieId AND p.disponible = true";
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            // AJOUT: LEFT JOIN FETCH pour charger la catégorie
+            String hql = "SELECT p FROM Plat p LEFT JOIN FETCH p.categorie WHERE p.categorie.id = :categorieId AND p.disponible = true";
             Query<Plat> query = session.createQuery(hql, Plat.class);
             query.setParameter("categorieId", categorieId);
-            return query.list();
-        } finally {
-            session.close();
+            return query.getResultList();
+        } catch (Exception e) {
+            System.err.println("Erreur recherche plats par catégorie: " + e.getMessage());
+            return new ArrayList<>();
         }
     }
 
@@ -51,14 +54,15 @@ public class PlatDAO extends GenericDAO<Plat> {
      * Utilisé pour : Barre de recherche dans le menu
      */
     public List<Plat> searchByName(String searchTerm) {
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        try {
-            String hql = "FROM Plat p WHERE LOWER(p.nom) LIKE LOWER(:searchTerm) AND p.disponible = true";
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            // AJOUT: LEFT JOIN FETCH pour charger la catégorie
+            String hql = "SELECT p FROM Plat p LEFT JOIN FETCH p.categorie WHERE LOWER(p.nom) LIKE LOWER(:searchTerm) AND p.disponible = true";
             Query<Plat> query = session.createQuery(hql, Plat.class);
             query.setParameter("searchTerm", "%" + searchTerm + "%");
-            return query.list();
-        } finally {
-            session.close();
+            return query.getResultList();
+        } catch (Exception e) {
+            System.err.println("Erreur recherche plats par nom: " + e.getMessage());
+            return new ArrayList<>();
         }
     }
 }
