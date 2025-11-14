@@ -33,29 +33,50 @@ public class ClientDAO extends GenericDAO<Client> {
         }
     }
 
-
     /**
      * 🔍 RECHERCHE CLIENT - Recherche par nom ou téléphone
+     * Utilisé pour : Trouver rapidement un client existant
      */
     public List<Client> searchClients(String searchTerm) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         try {
-            System.out.println("🎯 DAO - Début recherche avec terme: '" + searchTerm + "'");
-
             String hql = "FROM Client c WHERE LOWER(c.nom) LIKE LOWER(:searchTerm) OR c.telephone LIKE :searchTerm";
             Query<Client> query = session.createQuery(hql, Client.class);
             query.setParameter("searchTerm", "%" + searchTerm + "%");
+            return query.list();
+        } finally {
+            session.close();
+        }
+    }
 
-            List<Client> results = query.list();
-            System.out.println("🎯 DAO - Requête HQL exécutée: " + hql);
-            System.out.println("🎯 DAO - Paramètre: '%" + searchTerm + "%'");
-            System.out.println("🎯 DAO - Résultats trouvés: " + results.size());
+    /**
+     * 👥 CLIENTS FIDÈLES - Clients avec le plus de commandes
+     * Utilisé pour : Programme de fidélité
+     */
+    public List<Object[]> getClientsFideles(int limit) {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            String hql = "SELECT c.nom, COUNT(cmd) as nbCommandes, SUM(cmd.montantTotal) as totalDepense " +
+                    "FROM Client c LEFT JOIN c.commandes cmd " +
+                    "GROUP BY c.id, c.nom " +
+                    "ORDER BY nbCommandes DESC, totalDepense DESC";
+            Query<Object[]> query = session.createQuery(hql, Object[].class);
+            query.setMaxResults(limit);
+            return query.list();
+        } finally {
+            session.close();
+        }
+    }
 
-            for (Client client : results) {
-                System.out.println("🎯 DAO - Client: " + client.getNom() + " | " + client.getTelephone());
-            }
-
-            return results;
+    public Long countAll() {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            String hql = "SELECT COUNT(c) FROM Client c";
+            Query<Long> query = session.createQuery(hql, Long.class);
+            return query.uniqueResult();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0L;
         } finally {
             session.close();
         }

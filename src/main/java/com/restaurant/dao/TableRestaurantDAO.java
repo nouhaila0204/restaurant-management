@@ -56,6 +56,43 @@ public class TableRestaurantDAO extends GenericDAO<TableRestaurant> {
     }
 
     /**
+     * 🔢 COMPTER TABLES LIBRES - Nombre de tables disponibles
+     * Utilisé pour : Dashboard, statistiques
+     */
+    public Long countTablesLibres() {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            String hql = "SELECT COUNT(t) FROM TableRestaurant t WHERE t.statut = :statut";
+            Query<Long> query = session.createQuery(hql, Long.class);
+            query.setParameter("statut", TableRestaurant.StatutTable.LIBRE);
+            return query.uniqueResult();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0L;
+        } finally {
+            session.close();
+        }
+    }
+
+    /**
+     * 🔢 COMPTER TOUTES LES TABLES
+     * Utilisé pour : Dashboard, statistiques
+     */
+    public Long countAll() {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            String hql = "SELECT COUNT(t) FROM TableRestaurant t";
+            Query<Long> query = session.createQuery(hql, Long.class);
+            return query.uniqueResult();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0L;
+        } finally {
+            session.close();
+        }
+    }
+
+    /**
      * 🔢 TROUVER PAR NUMÉRO - Recherche rapide d'une table
      * Utilisé pour : Navigation rapide, vérification disponibilité
      */

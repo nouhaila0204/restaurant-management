@@ -104,4 +104,75 @@ public class GenericDAO<T> {
             session.close();
         }
     }
+
+
+    /**
+     * ✏️ METTRE À JOUR - Met à jour une entité existante
+     * Utilisé pour : Modifier un utilisateur, éditer un plat, etc.
+     */
+    public void update(T entity) {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+            session.update(entity);  // Met à jour l'entité existante
+            tx.commit();
+        } catch (Exception e) {
+            if (tx != null) tx.rollback();
+            throw new RuntimeException("Erreur mise à jour " + type.getSimpleName(), e);
+        } finally {
+            session.close();
+        }
+    }
+
+    /**
+     * 🔄 FUSIONNER - Fusionne une entité détachée avec la session
+     * Alternative à update() pour les entités détachées
+     */
+    public T merge(T entity) {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+            T mergedEntity = (T) session.merge(entity);
+            tx.commit();
+            return mergedEntity;
+        } catch (Exception e) {
+            if (tx != null) tx.rollback();
+            throw new RuntimeException("Erreur fusion " + type.getSimpleName(), e);
+        } finally {
+            session.close();
+        }
+    }
+
+    /**
+     * 📊 COMPTER TOUTES LES ENTITÉS - Retourne le nombre total d'entités
+     * Utilisé pour : Statistiques, dashboard
+     */
+    public Long countAll() {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            String hql = "SELECT COUNT(*) FROM " + type.getName();
+            Query<Long> query = session.createQuery(hql, Long.class);
+            return query.uniqueResult();
+        } finally {
+            session.close();
+        }
+    }
+
+    /**
+     * 🔢 COMPTER PAR CHAMP - Retourne le nombre d'entités selon un critère
+     * Utilisé pour : Statistiques filtrées
+     */
+    public Long countByField(String fieldName, Object value) {
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        try {
+            String hql = "SELECT COUNT(*) FROM " + type.getName() + " WHERE " + fieldName + " = :value";
+            Query<Long> query = session.createQuery(hql, Long.class);
+            query.setParameter("value", value);
+            return query.uniqueResult();
+        } finally {
+            session.close();
+        }
+    }
 }

@@ -380,6 +380,36 @@
                             </button>
                         </form>
                     </div>
+
+                    <!-- Demo Accounts Section -->
+                    <div class="demo-section">
+                        <h6 class="demo-title">
+                            <i class="bi bi-info-circle-fill me-2"></i>Comptes de Démonstration
+                        </h6>
+
+                        <div class="demo-account">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-shield-fill-check role-icon me-2"></i>
+                                    <strong>Administrateur</strong>
+                                </div>
+                                <span class="role-badge">admin@restaurant.com</span>
+                            </div>
+                        </div>
+
+                        <div class="demo-account">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-person-fill role-icon me-2"></i>
+                                    <strong>Serveur</strong>
+                                </div>
+                                <span class="role-badge">serveur@restaurant.com</span>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
             </div>
         </div>
     </div>
